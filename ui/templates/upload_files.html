@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Files</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .file-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .custom-file-input {
+            display: none;
+        }
+
+        .custom-file-label {
+            display: inline-block;
+            width: 100%;
+            padding: 0.375rem 0.75rem;
+            margin-bottom: 0;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #495057;
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+
+        .custom-file-label::after {
+            content: "Browse";
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            margin-left: 0.5rem;
+            font-weight: 700;
+            color: #495057;
+            background-color: #e9ecef;
+            border-left: inherit;
+            border-radius: 0 0.25rem 0.25rem 0;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Job Description and Resumes</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    {% for category, message in messages %}
+                        {{ message }}
+                    {% endfor %}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+            {% endif %}
+        {% endwith %}
+        <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="job_description">Job Description:</label>
+                <div class="custom-file">
+                    <input type="file" name="job_description" id="job_description" class="custom-file-input" required>
+                    <label class="custom-file-label" for="job_description">Choose file</label>
+                </div>
+                <ul id="job-description-list" class="file-list"></ul>
+            </div>
+            <div class="form-group">
+                <label for="resumes">Resumes:</label>
+                <div class="custom-file">
+                    <input type="file" name="resumes" id="resumes" class="custom-file-input" multiple>
+                    <label class="custom-file-label" for="resumes">Choose files</label>
+                </div>
+                <ul id="resume-list" class="file-list"></ul>
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+    </div>
+
+    <script>
+        let resumeFiles = [];
+
+        document.getElementById('job_description').addEventListener('change', function(event) {
+            const fileList = document.getElementById('job-description-list');
+            fileList.innerHTML = '';
+            for (let i = 0; i < event.target.files.length; i++) {
+                const li = document.createElement('li');
+                li.textContent = event.target.files[i].name;
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'x';
+                removeButton.classList.add('btn', 'btn-danger', 'btn-sm');
+                removeButton.addEventListener('click', function() {
+                    event.target.value = '';
+                    fileList.innerHTML = '';
+                });
+                li.appendChild(removeButton);
+                fileList.appendChild(li);
+            }
+        });
+
+        document.getElementById('resumes').addEventListener('change', function(event) {
+            const fileList = document.getElementById('resume-list');
+            for (let i = 0; i < event.target.files.length; i++) {
+                resumeFiles.push(event.target.files[i]);
+            }
+            fileList.innerHTML = '';
+            resumeFiles.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.textContent = file.name;
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'x';
+                removeButton.classList.add('btn', 'btn-danger', 'btn-sm');
+                removeButton.addEventListener('click', function() {
+                    resumeFiles.splice(index, 1);
+                    updateResumeList();
+                });
+                li.appendChild(removeButton);
+                fileList.appendChild(li);
+            });
+            event.target.value = '';  // Clear the input so the same file can be selected again if needed
+        });
+
+        function updateResumeList() {
+            const fileList = document.getElementById('resume-list');
+            fileList.innerHTML = '';
+            resumeFiles.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.textContent = file.name;
+                const removeButton = document.createElement('button');
+                removeButton.textContent = 'x';
+                removeButton.classList.add('btn', 'btn-danger', 'btn-sm');
+                removeButton.addEventListener('click', function() {
+                    resumeFiles.splice(index, 1);
+                    updateResumeList();
+                });
+                li.appendChild(removeButton);
+                fileList.appendChild(li);
+            });
+
+            // Update the file input display
+            const resumeInput = document.getElementById('resumes');
+            if (resumeFiles.length === 0) {
+                resumeInput.value = '';  // Reset the input if no files are left
+            }
+        }
+
+        //To check if the DOM is being loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const jobDescriptionInput = document.getElementById('job_description');
+            const resumesInput = document.getElementById('resumes');
+
+        console.log('Job Description Input:', jobDescriptionInput);
+        console.log('Resumes Input:', resumesInput);
+        });
+
+        // Ensure files are properly sent to the server
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            const formData = new FormData();
+            const jobDescription = document.getElementById('job_description').files[0];
+            if (jobDescription) {
+                formData.append('job_description', jobDescription);
+            }
+            resumeFiles.forEach((file, index) => {
+                formData.append('resumes', file);
+            });
+
+            // Send the form data using fetch
+            fetch(event.target.action, {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    alert('File upload succeeded')
+                } else {
+                    alert('File upload failed.');
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('File upload failed.');
+            });
+
+            event.preventDefault();  // Prevent the default form submission
+        });
+    </script>
+</body>
+</html>
