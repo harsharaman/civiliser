@@ -1,2 +1,7 @@
 civiliser_venv
 data
+models
+.env
+notebooks/chroma-data
+notebooks/__pycache__
+prompt_examples
